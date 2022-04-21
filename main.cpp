@@ -101,46 +101,4 @@ int main(int, char **) {
   result.wait();
 }
 
-namespace behavior{
-struct Stop : public BehaviorElement { 
-  ElementMeta initialize(Services) override;
-  Outcome tick(const SenseInfo &) override;
-  void finalize() override;
 
-};
-struct Sequence: public BehaviorElement{ 
-  using Elements = std::vector<std::reference_wrapper<BehaviorElement>>;
-  Sequence(const Elements& elements);
-  ElementMeta initialize(Services) override;
-  Outcome tick(const SenseInfo &) override;
-  void finalize() override;
-  /* ... */
-};
-struct DriveForward: public BehaviorElement{
-  DriveForward(double goal);
-  ElementMeta initialize(Services) override;
-  void finalize() override;
-  double calculate_vel(double pos);
-  bool is_at_goal(double pos);
-  Outcome tick(const SenseInfo & s) override{
-    // set the outgoing velocity
-    Outcome out;
-    out.actuate.velocity = calculate_vel(s.pos);
-    out.value = is_at_goal(s.pos) ? Outcome::Return::Success : Outcome::Return::Running;
-  }
-};
-}
-
-namespace strategy{
-int clean_the_area(int, char **) {
-  // Create the behavior -> drive then stop
-  
-  behavior::Stop stop;
-  behavior::DriveForward drive(4);
-  behavior::Sequence sequence({std::ref(drive), std::ref(stop)});
-
-  // run it asynchronously so we can do other work, like mapping or planning
-  auto result = std::async(Executor::run, std::ref(sequence));
-  result.wait(); // uses OS sleep and conditional primitives
-}
-} // namespace strategy
